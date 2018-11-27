@@ -16,18 +16,18 @@ struct PositionFrame: Codable {
 }
 
 protocol EyeTracker {
-    static func instance(tracking window: UIWindow) -> EyeTracker
+    static func buildTracker(tracking window: UIWindow) -> EyeTracker
     mutating func restore(_ window: UIWindow)
     var isShowingTarget: Bool { get set }
     var isExportEnabled: Bool { get set }
 }
 
-private protocol EmbedContent {
+protocol EmbedContent {
     var innerController: UIViewController? { get set }
 }
 
 extension EyeTracker where Self: UIViewController, Self: EmbedContent {
-    static func instance(tracking window: UIWindow) -> EyeTracker {
+    static func buildTracker(tracking window: UIWindow) -> EyeTracker {
         var overlay = Self.init(nibName: String(describing: Self.self), bundle: Bundle(for: Self.self))
         overlay.innerController = window.rootViewController
         window.rootViewController = overlay
@@ -43,7 +43,14 @@ extension EyeTracker where Self: UIViewController, Self: EmbedContent {
     }
 }
 
-class EyeTrackingViewController: UIViewController, ARSCNViewDelegate {
+extension EyeTrackingViewController: ARSCNViewDelegate {
+    // Override to create and configure nodes for anchors added to the view's session.
+    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        return SCNNode()
+    }
+}
+
+class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
 
     @IBOutlet var sceneView: ARSCNView!
     @IBOutlet var contentView: UIView!
@@ -68,7 +75,7 @@ class EyeTrackingViewController: UIViewController, ARSCNViewDelegate {
     var screenWidth: Float = 0.0
     var screenHeigth: Float = 0.0
     
-    fileprivate weak var innerController: UIViewController? = nil {
+    weak var innerController: UIViewController? = nil {
         willSet {
             if let controller = self.innerController {
                 controller.willMove(toParent: nil)
@@ -186,29 +193,16 @@ class EyeTrackingViewController: UIViewController, ARSCNViewDelegate {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
         // Create a session configuration
         let configuration = ARFaceTrackingConfiguration()
-
         // Run the view's session
         sceneView.session.run(configuration)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
         // Pause the view's session
         sceneView.session.pause()
-    }
-
-    // MARK: - ARSCNViewDelegate
-    
-
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
