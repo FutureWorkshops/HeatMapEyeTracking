@@ -17,20 +17,24 @@ struct PositionFrame: Codable {
 
 protocol EyeTracker {
     static func instance(tracking window: UIWindow) -> EyeTracker
-    func restore(_ window: UIWindow)
+    mutating func restore(_ window: UIWindow)
     var isShowingTarget: Bool { get set }
     var isExportEnabled: Bool { get set }
 }
 
-extension EyeTrackingViewController: EyeTracker {
+private protocol EmbedContent {
+    var innerController: UIViewController? { get set }
+}
+
+extension EyeTracker where Self: UIViewController, Self: EmbedContent {
     static func instance(tracking window: UIWindow) -> EyeTracker {
-        let overlay = EyeTrackingViewController(nibName: String(describing: EyeTrackingViewController.self), bundle: Bundle(for: EyeTrackingViewController.self))
+        var overlay = Self.init(nibName: String(describing: Self.self), bundle: Bundle(for: Self.self))
         overlay.innerController = window.rootViewController
         window.rootViewController = overlay
         return overlay
     }
     
-    func restore(_ window: UIWindow) {
+    mutating func restore(_ window: UIWindow) {
         guard let innerController = self.innerController else {
             return
         }
