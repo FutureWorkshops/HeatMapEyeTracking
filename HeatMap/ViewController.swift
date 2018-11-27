@@ -10,14 +10,24 @@ import UIKit
 import SceneKit
 import ARKit
 
+struct PositionFrame: Codable {
+    let position: CGPoint
+    let timestamp: TimeInterval
+}
+
 class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
-    let phoneWidth = 375 * 3;
-    let phoneHeight = 812 * 3;
+    let widthScale: Float = 0.0623908297 / 375.0
+    let heightScale: Float = 0.135096943231532 / 812.0
     
-    var m_data : [UInt8] = [UInt8](repeating: 0, count: 375*3 * 812*3)
+    var phoneWidth = 0
+    var phoneHeight = 0
+    
+    var m_data : [UInt8] = []
+    var buffer: [PositionFrame] = []
+    
     
     var positions: Array<simd_float2> = Array()
     let numPositions = 10;
@@ -25,6 +35,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     var eyeLasers : EyeLasers?
     var eyeRaycastData : RaycastData?
     var virtualPhoneNode: SCNNode = SCNNode()
+    
+    var screenWidth: Float = 0.0
+    var screenHeigth: Float = 0.0
     
     var virtualScreenNode: SCNNode = {
         
@@ -65,6 +78,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        self.screenHeigth = Float(UIScreen.main.bounds.height)
+        self.screenWidth = Float(UIScreen.main.bounds.width)
+        self.phoneWidth = Int(self.screenWidth * 3.0);
+        self.phoneHeight = Int(self.screenHeigth * 3.0);
+        self.m_data = [UInt8](repeating: 0, count: self.phoneWidth * self.phoneHeight)
+        
         target.backgroundColor = UIColor.red
         target.frame = CGRect.init(x: 0,y:0 ,width:25 ,height:25)
         target.layer.cornerRadius = 12.5
@@ -74,6 +93,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.delegate = self
         //sceneView.session.delegate = self
         sceneView.automaticallyUpdatesLighting = true
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(ViewController.exportBuffer))
+        tapGesture.cancelsTouchesInView = false
+        tapGesture.numberOfTapsRequired = 1
+        sceneView.addGestureRecognizer(tapGesture)
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
@@ -170,8 +194,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         if (hitTestLeftEye.count > 0 && hitTestRightEye.count > 0) {
             
+            let leftSide = hitTestLeftEye[0]
+            let rightSide = hitTestRightEye[0]
             var coords = screenPositionFromHittest(hitTestLeftEye[0], secondResult:hitTestRightEye[0])
             //print("x:\(coords.x) y: \(coords.y)")
+            
+            let xPoint = CGFloat((leftSide.localCoordinates.x + rightSide.localCoordinates.x) / 2.0)
+            let yPoint = CGFloat((leftSide.localCoordinates.y + rightSide.localCoordinates.y) / 2.0)
+            
+            //SAVE OPERATION
+            self.buffer.append(PositionFrame(position: CGPoint(x: xPoint, y: yPoint), timestamp: Date().timeIntervalSince1970))
             
             incrementHeatMapAtPosition(x:Int(coords.x * 3), y:Int(coords.y * 3))  // convert from points to pixels here
             
@@ -185,19 +217,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     func screenPositionFromHittest(_ result1: SCNHitTestResult, secondResult result2: SCNHitTestResult) -> simd_float2 {
-        let iPhoneXPointSize = simd_float2(375, 812)  // size of iPhoneX in points
-        let iPhoneXMeterSize = simd_float2(0.0623908297, 0.135096943231532)
+        let iPhoneXPointSize = simd_float2(self.screenWidth, self.screenHeigth)  // size of iPhoneX in points
+        let iPhoneXMeterSize = simd_float2(self.screenWidth * widthScale, self.screenHeigth * heightScale)
 
         let xLC = ((result1.localCoordinates.x + result2.localCoordinates.x) / 2.0)
         var x = xLC / (iPhoneXMeterSize.x / 2.0) * iPhoneXPointSize.x
         
         let yLC = -((result1.localCoordinates.y + result2.localCoordinates.y) / 2.0);
         var y = yLC / (iPhoneXMeterSize.y / 2.0) * iPhoneXPointSize.y + 312
-        
-        // The 312 points adjustment above is presumably to adjust for the Extrinsics on the iPhone camera.
-        // I didn't calculate them and instead ripped them from :
-        // https://github.com/virakri/eye-tracking-ios-prototype/blob/master/Eyes%20Tracking/ViewController.swift
-        // Probably better to get real values from measuring the camera position to the center of the screen.
         
         x = Float.maximum(Float.minimum(x, iPhoneXPointSize.x-1), 0)
         y = Float.maximum(Float.minimum(y, iPhoneXPointSize.y-1), 0)
@@ -220,6 +247,32 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         return total
     }
 
+    
+    @IBAction func exportBuffer() {
+        let cleanBuffer = self.buffer.filter({ $0.position.x > 0.0 && $0.position.y > 0.0 })
+        
+        guard cleanBuffer.count > 0 else {
+            return
+        }
+        
+        guard let cacheURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            return
+        }
+        
+        guard let content = try? JSONEncoder().encode(cleanBuffer) else {
+            return
+        }
+        
+        let fileCacheURL = cacheURL.appendingPathComponent("eyetrackingbuffer_\(Date().timeIntervalSince1970)").appendingPathExtension("json")
+        
+        guard let _ = try? content.write(to: fileCacheURL) else {
+            return
+        }
+        
+        let activityController = UIActivityViewController(activityItems: [fileCacheURL], applicationActivities: nil)
+        self.present(activityController, animated: true, completion: nil)
+    }
+    
     /** Note. I'm not using this because I couldn't figure out how to set an MTLTexture to an SCNProgram because Scenekit has terrible
         documentation. That said you should DEFINITELY fix this if you ever plan to use something like this in production.
         So I left it in for reference. */
