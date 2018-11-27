@@ -15,10 +15,32 @@ struct PositionFrame: Codable {
     let timestamp: TimeInterval
 }
 
+
+/// Object that is able to use ARKit face detection to estimate the points to where the user is
+/// looking into the screen. This data is estimated given the user's face mash, not direct pupil estimation.
 protocol EyeTracker {
+    
+    /// This method will create an EyeTracker and replace the Root View Controller
+    /// of the window, so the tracker can act over the full content.
+    ///
+    /// - Parameter window: Window where the EyeTracker will be applied
+    /// - Returns: The instance of the EyeTracker, so the lifecycle can be controlled
     static func buildTracker(tracking window: UIWindow) -> EyeTracker
+    
+    
+    /// This restores the state of the UIWindow to before the EyeTracker was activated
+    ///
+    /// - Parameter window: Window where the EyeTracker was be applied
     mutating func restore(_ window: UIWindow)
+    
+    
+    /// A simple control to enable/disable the tracker indicator
+    /// useful for debug sessions
     var isShowingTarget: Bool { get set }
+    
+    
+    /// Enable/disable the posibility to export the data tracked by the session.
+    /// The data can be exported by tapping 3 times with 2 fingers in the screen.
     var isExportEnabled: Bool { get set }
 }
 
