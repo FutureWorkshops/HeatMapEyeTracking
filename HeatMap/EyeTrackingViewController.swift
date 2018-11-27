@@ -15,6 +15,7 @@ struct PositionFrame: Codable {
     let timestamp: TimeInterval
 }
 
+private let kInfoPermissionKey = "FWEyeTrackingUsageDescription"
 
 /// Object that is able to use ARKit face detection to estimate the points to where the user is
 /// looking into the screen. This data is estimated given the user's face mash, not direct pupil estimation.
@@ -25,13 +26,13 @@ protocol EyeTracker: class {
     ///
     /// - Parameter window: Window where the EyeTracker will be applied
     /// - Returns: The instance of the EyeTracker, so the lifecycle can be controlled. It will be nil if faced error on loading
-    static func buildTracker(tracking window: UIWindow) -> EyeTracker?
+    static func buildTracker(tracking window: UIWindow, completion: @escaping (EyeTracker?)->Void)
     
     
     /// This restores the state of the UIWindow to before the EyeTracker was activated
     ///
     /// - Parameter window: Window where the EyeTracker was be applied
-    func restore(_ window: UIWindow)
+    func restore(_ window: UIWindow, completion: (String)->Void)
     
     
     /// A simple control to enable/disable the tracker indicator
@@ -48,28 +49,101 @@ protocol EmbedContent: class {
     var innerController: UIViewController? { get set }
 }
 
-extension EyeTracker where Self: UIViewController, Self: EmbedContent {
-    static func buildTracker(tracking window: UIWindow) -> EyeTracker? {
+protocol PositionTracking {
+    var positionData: String { get }
+}
+
+extension EyeTracker where Self: UIViewController, Self: EmbedContent, Self: PositionTracking {
+    static func buildTracker(tracking window: UIWindow, completion: @escaping (EyeTracker?)->Void) {
         
-        let bundle = Bundle(for: Self.self)
-        let nib = UINib(nibName: String(describing: Self.self), bundle: bundle)
-        
-        guard let overlay = nib.instantiate(withOwner: nil, options: nil).first as? Self else {
-            return nil
+        guard let permission = PermissionHandler.checkPermissionText() else {
+            assertionFailure("To use the eye tracking capability, please explain the usage of it with the key \"\(kInfoPermissionKey)\" on your Info.plist file")
+            completion(nil)
+            return
         }
         
         weak var controller = window.rootViewController
-        window.rootViewController = overlay
-        overlay.innerController = controller
-        return overlay
+        
+        let executionBlock: ()->Void = {
+            let bundle = Bundle(for: Self.self)
+            let nib = UINib(nibName: String(describing: Self.self), bundle: bundle)
+            
+            guard let overlay = nib.instantiate(withOwner: nil, options: nil).first as? Self else {
+                completion(nil)
+                return
+            }
+            
+            window.rootViewController = overlay
+            overlay.innerController = controller
+            completion(overlay)
+        }
+        
+        if let currentScreen = controller {
+            PermissionHandler.requestPermission(on: currentScreen, withExplanation: permission) { (allowed) in
+                if allowed {
+                    executionBlock()
+                }
+            }
+        } else {
+            completion(nil)
+        }
     }
     
-    func restore(_ window: UIWindow) {
+    func restore(_ window: UIWindow, completion: (String)->Void) {
+        
+        let data = self.positionData
+        
         guard let innerController = self.innerController else {
+            completion(data)
             return
         }
         self.innerController = nil
         window.rootViewController = innerController
+        completion(data)
+    }
+}
+
+struct PermissionHandler {
+    
+    private static func readInfoPlist<T>(key: String, in bundle: Bundle = .main, using fileManager: FileManager = .default) -> T? {
+        guard let infoPlist = bundle.path(forResource: "Info", ofType: "plist") else {
+            return nil
+        }
+        //FWEyeTrackingUsageDescription
+        guard let content = fileManager.contents(atPath: infoPlist) else {
+            return nil
+        }
+        
+        guard let plistData = try? PropertyListSerialization.propertyList(from: content, options: .mutableContainersAndLeaves, format: nil) as? [String: Any] else {
+            return nil
+        }
+        
+        if let permissionContent = plistData?[key] as? T {
+            return permissionContent
+        } else {
+            return nil
+        }
+    }
+    
+    static func checkPermissionText(in bundle: Bundle = .main, using fileManager: FileManager = .default) -> String? {
+        let value: String? = PermissionHandler.readInfoPlist(key: kInfoPermissionKey)
+        return value
+    }
+    
+    static func requestPermission(on viewController: UIViewController, withExplanation explanation: String, completion: @escaping (Bool)->Void) {
+        
+        let appName = PermissionHandler.readInfoPlist(key: "CFBundleExecutable") ?? ""
+        
+        let fullMessage = "The app \(appName) wants to record your eye movement through the screen.\nDo you want it to allow it?"
+        
+        let controller = UIAlertController(title: "Eye Tracking", message: fullMessage, preferredStyle: .alert)
+        controller.addAction(UIAlertAction(title: "Deny", style: .cancel, handler: { (_) in
+            completion(false)
+        }))
+        controller.addAction(UIAlertAction(title: "Allow", style: .default, handler: { (_) in
+            completion(true)
+        }))
+        viewController.present(controller, animated: true, completion: nil)
     }
 }
 
@@ -80,6 +154,19 @@ extension EyeTrackingViewController: ARSCNViewDelegate {
     }
 }
 
+extension EyeTrackingViewController: PositionTracking {
+    var positionData: String {
+        let cleanBuffer = self.buffer.filter({ $0.position.x > 0.0 && $0.position.y > 0.0 })
+        guard cleanBuffer.count > 0 else {
+            return ""
+        }
+        guard let content = try? JSONEncoder().encode(cleanBuffer) else {
+            return ""
+        }
+        return String(data: content, encoding: .utf8) ?? ""
+    }
+}
+
 class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
 
     @IBOutlet var sceneView: ARSCNView!
@@ -87,12 +174,11 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     let widthScale: Float = 0.0623908297 / 375.0
     let heightScale: Float = 0.135096943231532 / 812.0
     
-    var phoneWidth = 0
-    var phoneHeight = 0
+//    var phoneWidth = 0
+//    var phoneHeight = 0
     
-    var m_data : [UInt8] = []
+//    var m_data : [UInt8] = []
     var buffer: [PositionFrame] = []
-    
     
     var positions: Array<simd_float2> = Array()
     let numPositions = 10;
@@ -170,9 +256,9 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         
         self.screenHeigth = Float(UIScreen.main.bounds.height)
         self.screenWidth = Float(UIScreen.main.bounds.width)
-        self.phoneWidth = Int(self.screenWidth * 3.0);
-        self.phoneHeight = Int(self.screenHeigth * 3.0);
-        self.m_data = [UInt8](repeating: 0, count: self.phoneWidth * self.phoneHeight)
+//        self.phoneWidth = Int(self.screenWidth * 3.0);
+//        self.phoneHeight = Int(self.screenHeigth * 3.0);
+//        self.m_data = [UInt8](repeating: 0, count: self.phoneWidth * self.phoneHeight)
         
         self.target.backgroundColor = UIColor.red
         self.target.frame = CGRect.init(x: 0,y:0 ,width:25 ,height:25)
@@ -217,10 +303,14 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     func putContent(_ content: UIView) {
         self.view.addSubview(content)
         self.view.sendSubviewToBack(content)
-        NSLayoutConstraint.activate([self.view.topAnchor.constraint(equalTo: content.topAnchor),
+        NSLayoutConstraint.activate([self.view.safeAreaLayoutGuide.topAnchor.constraint(equalTo: content.topAnchor),
                                      self.view.bottomAnchor.constraint(equalTo: content.bottomAnchor),
                                      self.view.leadingAnchor.constraint(equalTo: content.leadingAnchor),
                                      self.view.trailingAnchor.constraint(equalTo: content.trailingAnchor)])
+    }
+    
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .lightContent
     }
     
     override func viewWillAppear(_ animated: Bool) {

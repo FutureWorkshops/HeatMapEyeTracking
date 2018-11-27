@@ -11,7 +11,7 @@ import ARKit
 import SceneKit
 
 class RaycastData : SCNNode {
-    let floatRaycastDistance:Float = 1;
+    let floatRaycastDistance:Float = 1.0;
     let leftEye: SCNNode
     let rightEye: SCNNode
     

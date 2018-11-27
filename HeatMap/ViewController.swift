@@ -26,10 +26,12 @@ class ViewController: UIViewController {
         let window = presentation!
         
         if let tracker = self.eyeTracker {
-            tracker.restore(window)
+            tracker.restore(window, completion: { (_) in })
         }
         
-        self.eyeTracker = EyeTrackingViewController.buildTracker(tracking: window)
+        EyeTrackingViewController.buildTracker(tracking: window) { [weak self] (tracker) in
+            self?.eyeTracker = tracker
+        }
     }
     
     @IBAction func stopTracker(_ sender: UIControl) {
@@ -41,7 +43,7 @@ class ViewController: UIViewController {
         let window = presentation!
         
         if let tracker = self.eyeTracker {
-            tracker.restore(window)
+            tracker.restore(window, completion: { (_) in })
         }
         
         self.eyeTracker = nil
