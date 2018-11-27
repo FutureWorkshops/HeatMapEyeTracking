@@ -84,10 +84,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         self.phoneHeight = Int(self.screenHeigth * 3.0);
         self.m_data = [UInt8](repeating: 0, count: self.phoneWidth * self.phoneHeight)
         
-        target.backgroundColor = UIColor.red
-        target.frame = CGRect.init(x: 0,y:0 ,width:25 ,height:25)
-        target.layer.cornerRadius = 12.5
-        sceneView.addSubview(target)
+        self.target.backgroundColor = UIColor.red
+        self.target.frame = CGRect.init(x: 0,y:0 ,width:25 ,height:25)
+        self.target.layer.cornerRadius = 12.5
+        self.view.addSubview(target)
         
         // Set the view's delegate
         sceneView.delegate = self
@@ -96,8 +96,9 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(ViewController.exportBuffer))
         tapGesture.cancelsTouchesInView = false
-        tapGesture.numberOfTapsRequired = 1
-        sceneView.addGestureRecognizer(tapGesture)
+        tapGesture.numberOfTapsRequired = 3
+        tapGesture.numberOfTouchesRequired = 2
+        self.view.addGestureRecognizer(tapGesture)
         
         // Show statistics such as fps and timing information
         sceneView.showsStatistics = true
