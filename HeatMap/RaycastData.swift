@@ -11,7 +11,7 @@ import ARKit
 import SceneKit
 
 class RaycastData : SCNNode {
-    let floatRaycastDistance:Float = 1.0;
+    let floatRaycastDistance:Float = 1.0
     let leftEye: SCNNode
     let rightEye: SCNNode
     
@@ -49,8 +49,6 @@ class RaycastData : SCNNode {
         if #available(iOS 12.0, *) {
             leftEye.simdTransform = anchor.leftEyeTransform;
             rightEye.simdTransform = anchor.rightEyeTransform;
-        } else {
-            
-        };
+        }
     }
 }
