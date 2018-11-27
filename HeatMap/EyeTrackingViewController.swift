@@ -18,20 +18,20 @@ struct PositionFrame: Codable {
 
 /// Object that is able to use ARKit face detection to estimate the points to where the user is
 /// looking into the screen. This data is estimated given the user's face mash, not direct pupil estimation.
-protocol EyeTracker {
+protocol EyeTracker: class {
     
     /// This method will create an EyeTracker and replace the Root View Controller
     /// of the window, so the tracker can act over the full content.
     ///
     /// - Parameter window: Window where the EyeTracker will be applied
-    /// - Returns: The instance of the EyeTracker, so the lifecycle can be controlled
-    static func buildTracker(tracking window: UIWindow) -> EyeTracker
+    /// - Returns: The instance of the EyeTracker, so the lifecycle can be controlled. It will be nil if faced error on loading
+    static func buildTracker(tracking window: UIWindow) -> EyeTracker?
     
     
     /// This restores the state of the UIWindow to before the EyeTracker was activated
     ///
     /// - Parameter window: Window where the EyeTracker was be applied
-    mutating func restore(_ window: UIWindow)
+    func restore(_ window: UIWindow)
     
     
     /// A simple control to enable/disable the tracker indicator
@@ -44,19 +44,27 @@ protocol EyeTracker {
     var isExportEnabled: Bool { get set }
 }
 
-protocol EmbedContent {
+protocol EmbedContent: class {
     var innerController: UIViewController? { get set }
 }
 
 extension EyeTracker where Self: UIViewController, Self: EmbedContent {
-    static func buildTracker(tracking window: UIWindow) -> EyeTracker {
-        var overlay = Self.init(nibName: String(describing: Self.self), bundle: Bundle(for: Self.self))
-        overlay.innerController = window.rootViewController
+    static func buildTracker(tracking window: UIWindow) -> EyeTracker? {
+        
+        let bundle = Bundle(for: Self.self)
+        let nib = UINib(nibName: String(describing: Self.self), bundle: bundle)
+        
+        guard let overlay = nib.instantiate(withOwner: nil, options: nil).first as? Self else {
+            return nil
+        }
+        
+        weak var controller = window.rootViewController
         window.rootViewController = overlay
+        overlay.innerController = controller
         return overlay
     }
     
-    mutating func restore(_ window: UIWindow) {
+    func restore(_ window: UIWindow) {
         guard let innerController = self.innerController else {
             return
         }
@@ -124,18 +132,18 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         return SCNNode(geometry: screenGeometry)
     }()
     
-    var heatMapNode:SCNNode = {
-        let node = SCNNode(geometry:SCNPlane(width: 2, height: 2))  // -1 to 1
-        
-        let program = SCNProgram()
-        program.vertexFunctionName = "heatMapVert"
-        program.fragmentFunctionName = "heatMapFrag"
-        
-        node.geometry?.firstMaterial?.program = program;
-        node.geometry?.firstMaterial?.blendMode = SCNBlendMode.add;
-        
-        return node;
-    } ()
+//    lazy var heatMapNode:SCNNode = {
+//        let node = SCNNode(geometry:SCNPlane(width: 2, height: 2))  // -1 to 1
+//
+//        let program = SCNProgram()
+//        program.vertexFunctionName = "heatMapVert"
+//        program.fragmentFunctionName = "heatMapFrag"
+//
+//        node.geometry?.firstMaterial?.program = program;
+//        node.geometry?.firstMaterial?.blendMode = SCNBlendMode.add;
+//
+//        return node;
+//    } ()
     
     var target : UIView = UIView()
     
@@ -173,8 +181,8 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         }
         
         // Set the view's delegate
-        sceneView.delegate = self
-        sceneView.automaticallyUpdatesLighting = true
+        self.sceneView.delegate = self
+        self.sceneView.automaticallyUpdatesLighting = true
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(EyeTrackingViewController.exportBuffer))
         tapGesture.cancelsTouchesInView = false
@@ -183,21 +191,21 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         self.view.addGestureRecognizer(tapGesture)
         
         // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
+        self.sceneView.showsStatistics = true
         
-        let device = sceneView.device!
+        let device = self.sceneView.device!
         let eyeGeometry = ARSCNFaceGeometry(device: device)!
-        eyeLasers = EyeLasers(geometry: eyeGeometry)
-        eyeRaycastData = RaycastData(geometry: eyeGeometry)
-        sceneView.scene.rootNode.addChildNode(eyeLasers!)
-        sceneView.scene.rootNode.addChildNode(eyeRaycastData!)
+        self.eyeLasers = EyeLasers(geometry: eyeGeometry)
+        self.eyeRaycastData = RaycastData(geometry: eyeGeometry)
+        self.sceneView.scene.rootNode.addChildNode(self.eyeLasers!)
+        self.sceneView.scene.rootNode.addChildNode(self.eyeRaycastData!)
         
-        virtualPhoneNode.geometry?.firstMaterial?.isDoubleSided = true
-        virtualPhoneNode.addChildNode(virtualScreenNode)
+        self.virtualPhoneNode.geometry?.firstMaterial?.isDoubleSided = true
+        self.virtualPhoneNode.addChildNode(self.virtualScreenNode)
 
-        sceneView.scene.rootNode.addChildNode(heatMapNode)
+//        sceneView.scene.rootNode.addChildNode(heatMapNode)
         
-        self.sceneView.scene.rootNode.addChildNode(virtualPhoneNode)
+        self.sceneView.scene.rootNode.addChildNode(self.virtualPhoneNode)
         self.sceneView.alpha = 0.0
         
         if let content = self.innerController?.view, content.superview == nil {
@@ -218,13 +226,13 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         // Create a session configuration
         let configuration = ARFaceTrackingConfiguration()
         // Run the view's session
-        sceneView.session.run(configuration)
+        self.sceneView.session.run(configuration)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         // Pause the view's session
-        sceneView.session.pause()
+        self.sceneView.session.pause()
     }
     
     func session(_ session: ARSession, didFailWithError error: Error) {
@@ -242,54 +250,51 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
         guard let faceAnchor = anchor as? ARFaceAnchor else { return }
-        eyeLasers?.transform = node.transform;
-        eyeRaycastData?.transform = node.transform;
-        eyeLasers?.update(withFaceAnchor: faceAnchor)
-        eyeRaycastData?.update(withFaceAnchor: faceAnchor)
+        self.eyeLasers?.transform = node.transform;
+        self.eyeRaycastData?.transform = node.transform;
+        self.eyeLasers?.update(withFaceAnchor: faceAnchor)
+        self.eyeRaycastData?.update(withFaceAnchor: faceAnchor)
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        virtualPhoneNode.transform = (sceneView.pointOfView?.transform)!
+        self.virtualPhoneNode.transform = (self.sceneView.pointOfView?.transform)!
         
         let options : [String: Any] = [SCNHitTestOption.backFaceCulling.rawValue: false,
                                        SCNHitTestOption.searchMode.rawValue: 1,
                                        SCNHitTestOption.ignoreChildNodes.rawValue : false,
                                        SCNHitTestOption.ignoreHiddenNodes.rawValue : false]
         
-        let hitTestLeftEye = virtualPhoneNode.hitTestWithSegment(
-            from: virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEye.worldPosition, from:nil),
-            to:  virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEyeEnd.worldPosition, from:nil),
+        let hitTestLeftEye = self.virtualPhoneNode.hitTestWithSegment(
+            from: self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEye.worldPosition, from:nil),
+            to:  self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEyeEnd.worldPosition, from:nil),
             //from: self.eyeRaycastData!.leftEye.worldPosition,
             //to:  self.eyeRaycastData!.leftEyeEnd.worldPosition,
             options: options)
         
-        let hitTestRightEye = virtualPhoneNode.hitTestWithSegment(
-            from: virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEye.worldPosition, from:nil),
-            to:  virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEyeEnd.worldPosition, from:nil),
+        let hitTestRightEye = self.virtualPhoneNode.hitTestWithSegment(
+            from: self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEye.worldPosition, from:nil),
+            to:  self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEyeEnd.worldPosition, from:nil),
             //from: self.eyeRaycastData!.rightEye.worldPosition,
             //to:  self.eyeRaycastData!.rightEyeEnd.worldPosition,
             options: options)
         
-        if (hitTestLeftEye.count > 0 && hitTestRightEye.count > 0) {
-            
-            let leftSide = hitTestLeftEye[0]
-            let rightSide = hitTestRightEye[0]
-            var coords = screenPositionFromHittest(hitTestLeftEye[0], secondResult:hitTestRightEye[0])
+        if let leftEye = hitTestLeftEye.first, let rightEye = hitTestRightEye.first {
+
+            var coords = self.screenPositionFromHittest(leftEye, secondResult:rightEye)
             //print("x:\(coords.x) y: \(coords.y)")
             
-            let xPoint = CGFloat((leftSide.localCoordinates.x + rightSide.localCoordinates.x) / 2.0)
-            let yPoint = CGFloat((leftSide.localCoordinates.y + rightSide.localCoordinates.y) / 2.0)
+            let point = CGPoint(x: CGFloat(coords.x), y: CGFloat(coords.y))
             
             //SAVE OPERATION
-            self.buffer.append(PositionFrame(position: CGPoint(x: xPoint, y: yPoint), timestamp: Date().timeIntervalSince1970))
+            self.buffer.append(PositionFrame(position: point, timestamp: Date().timeIntervalSince1970))
             
-            incrementHeatMapAtPosition(x:Int(coords.x * 3), y:Int(coords.y * 3))  // convert from points to pixels here
+//            incrementHeatMapAtPosition(x:Int(coords.x * 3), y:Int(coords.y * 3))  // convert from points to pixels here
             
-            let nsdata = NSData.init(bytes: &m_data, length: phoneWidth * phoneHeight)
-            heatMapNode.geometry?.firstMaterial?.setValue(nsdata, forKey: "heatmapTexture")
+//            let nsdata = NSData.init(bytes: &m_data, length: phoneWidth * phoneHeight)
+//            heatMapNode.geometry?.firstMaterial?.setValue(nsdata, forKey: "heatmapTexture")
             
-            DispatchQueue.main.async(execute: {() -> Void in
-                self.target.center = CGPoint.init(x: CGFloat(coords.x), y:CGFloat(coords.y))
+            DispatchQueue.main.async(execute: { [weak self] in
+                self?.target.center = point
             })
         }
     }
@@ -308,21 +313,21 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         y = Float.maximum(Float.minimum(y, iPhoneXPointSize.y-1), 0)
         
         // Do just a bit of smoothing. Nothing crazy.
-        positions.append(simd_float2(x,y));
-        if positions.count > numPositions {
-            positions.removeFirst()
+        self.positions.append(simd_float2(x,y));
+        if self.positions.count > self.numPositions {
+            self.positions.removeFirst()
         }
-        
+
         var total = simd_float2(0,0);
-        for pos in positions {
+        for pos in self.positions {
             total.x += pos.x
             total.y += pos.y
         }
+
+        total.x /= Float(self.positions.count)
+        total.y /= Float(self.positions.count)
         
-        total.x /= Float(positions.count)
-        total.y /= Float(positions.count)
-        
-        return total
+        return total;
     }
 
     
@@ -358,49 +363,49 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     /** Note. I'm not using this because I couldn't figure out how to set an MTLTexture to an SCNProgram because Scenekit has terrible
         documentation. That said you should DEFINITELY fix this if you ever plan to use something like this in production.
         So I left it in for reference. */
-    func metalTextureFromArray(_ array:[UInt8], width:Int, height:Int) -> MTLTexture {
-        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: MTLPixelFormat.a8Unorm, width: width, height: height, mipmapped: false)
-        
-        let texture = self.sceneView.device?.makeTexture(descriptor: textureDescriptor)
-        let region = MTLRegion(origin: MTLOriginMake(0, 0, 0), size: MTLSizeMake(width, height, 1))
-        texture?.replace(region: region, mipmapLevel: 0, withBytes: array, bytesPerRow: width)
-        
-        return texture!
-    }
-    
-    func incrementHeatMapAtPosition(x: Int, y: Int) {
-        let radius:Int = 46; // in pixels
-        let maxIncrement:Float = 25;
-        
-        for curX in x - radius ... x + radius {
-            for curY in y - radius ... y + radius {
-                let idx = posToIndex(x:curX, y:curY)
-                
-                if (idx != -1) {
-                    let offset = simd_float2(Float(curX - x), Float(curY - y));
-                    let len = simd_length(offset)
-                    
-                    if (len >= Float(radius)) {
-                        continue;
-                    }
-
-                    let incrementValue = Int((1 - (len / Float(radius))) * maxIncrement);
-                    if (255 - m_data[idx] > incrementValue) {
-                        m_data[idx] = UInt8(Int(m_data[idx]) + incrementValue)
-                    } else {
-                        m_data[idx] = 255
-                    }
-                }
-            }
-        }
-    }
-    
-    func posToIndex(x:Int, y:Int) -> Int {
-        if (x < 0 || x >= phoneWidth ||
-            y < 0 || y >= phoneHeight) {
-            return -1;
-        }
-        
-        return x + y * phoneWidth;
-    }
+//    func metalTextureFromArray(_ array:[UInt8], width:Int, height:Int) -> MTLTexture {
+//        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: MTLPixelFormat.a8Unorm, width: width, height: height, mipmapped: false)
+//
+//        let texture = self.sceneView.device?.makeTexture(descriptor: textureDescriptor)
+//        let region = MTLRegion(origin: MTLOriginMake(0, 0, 0), size: MTLSizeMake(width, height, 1))
+//        texture?.replace(region: region, mipmapLevel: 0, withBytes: array, bytesPerRow: width)
+//
+//        return texture!
+//    }
+//
+//    func incrementHeatMapAtPosition(x: Int, y: Int) {
+//        let radius:Int = 46; // in pixels
+//        let maxIncrement:Float = 25;
+//
+//        for curX in x - radius ... x + radius {
+//            for curY in y - radius ... y + radius {
+//                let idx = posToIndex(x:curX, y:curY)
+//
+//                if (idx != -1) {
+//                    let offset = simd_float2(Float(curX - x), Float(curY - y));
+//                    let len = simd_length(offset)
+//
+//                    if (len >= Float(radius)) {
+//                        continue;
+//                    }
+//
+//                    let incrementValue = Int((1 - (len / Float(radius))) * maxIncrement);
+//                    if (255 - m_data[idx] > incrementValue) {
+//                        m_data[idx] = UInt8(Int(m_data[idx]) + incrementValue)
+//                    } else {
+//                        m_data[idx] = 255
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    func posToIndex(x:Int, y:Int) -> Int {
+//        if (x < 0 || x >= phoneWidth ||
+//            y < 0 || y >= phoneHeight) {
+//            return -1;
+//        }
+//
+//        return x + y * phoneWidth;
+//    }
 }

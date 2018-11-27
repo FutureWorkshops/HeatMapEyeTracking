@@ -12,11 +12,36 @@
         <!--View Controller-->
         <scene sceneID="7Uo-Wf-ne0">
             <objects>
-                <viewController id="Uhg-tH-bIH" sceneMemberID="viewController">
+                <viewController id="Uhg-tH-bIH" customClass="ViewController" customModule="HeatMap" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="PDi-3H-N2y">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="40" translatesAutoresizingMaskIntoConstraints="NO" id="hbL-Br-mkt">
+                                <rect key="frame" x="143" y="283.5" width="89" height="100"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="nKB-mD-jGD">
+                                        <rect key="frame" x="0.0" y="0.0" width="89" height="30"/>
+                                        <state key="normal" title="Start Tracker"/>
+                                        <connections>
+                                            <action selector="startTracker:" destination="Uhg-tH-bIH" eventType="touchUpInside" id="iG7-Bc-jVz"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="liS-Xo-eMV">
+                                        <rect key="frame" x="0.0" y="70" width="89" height="30"/>
+                                        <state key="normal" title="Stop Tracker"/>
+                                        <connections>
+                                            <action selector="stopTracker:" destination="Uhg-tH-bIH" eventType="touchUpInside" id="GvD-V1-IIM"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                            </stackView>
+                        </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="hbL-Br-mkt" firstAttribute="centerX" secondItem="PDi-3H-N2y" secondAttribute="centerX" id="1cc-RR-6YN"/>
+                            <constraint firstItem="hbL-Br-mkt" firstAttribute="centerY" secondItem="PDi-3H-N2y" secondAttribute="centerY" id="Zif-XO-taH"/>
+                        </constraints>
                         <viewLayoutGuide key="safeArea" id="Xh2-vQ-b87"/>
                     </view>
                 </viewController>

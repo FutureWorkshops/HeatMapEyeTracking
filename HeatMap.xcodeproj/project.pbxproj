@@ -16,6 +16,7 @@
 		5A92A73520D02EE2002C1111 /* RaycastData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A73420D02EE2002C1111 /* RaycastData.swift */; };
 		5ACC4C6620D85D5000B91E25 /* HeatMap.metal in Sources */ = {isa = PBXBuildFile; fileRef = 5ACC4C6520D85D5000B91E25 /* HeatMap.metal */; };
 		7841CE6D21AD980E0032A0F8 /* EyeTrackingViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */; };
+		7841CE6F21ADA3310032A0F8 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7841CE6E21ADA3310032A0F8 /* ViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		5A92A73420D02EE2002C1111 /* RaycastData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastData.swift; sourceTree = "<group>"; };
 		5ACC4C6520D85D5000B91E25 /* HeatMap.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = HeatMap.metal; sourceTree = "<group>"; };
 		7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = EyeTrackingViewController.xib; sourceTree = "<group>"; };
+		7841CE6E21ADA3310032A0F8 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +74,7 @@
 				5A92A72A20CEECBB002C1111 /* Info.plist */,
 				5ACC4C6520D85D5000B91E25 /* HeatMap.metal */,
 				7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */,
+				7841CE6E21ADA3310032A0F8 /* ViewController.swift */,
 			);
 			path = HeatMap;
 			sourceTree = "<group>";
@@ -148,6 +151,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7841CE6F21ADA3310032A0F8 /* ViewController.swift in Sources */,
 				5A92A72120CEECB9002C1111 /* EyeTrackingViewController.swift in Sources */,
 				5ACC4C6620D85D5000B91E25 /* HeatMap.metal in Sources */,
 				5A92A73520D02EE2002C1111 /* RaycastData.swift in Sources */,
