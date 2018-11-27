@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <viewController id="9r0-LQ-ddl" customClass="EyeTrackingViewController" customModule="HeatMap" customModuleProvider="target">
+            <view key="view" contentMode="scaleToFill" id="3aL-hS-ozk">
+                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0a9-7l-LoN" userLabel="Content">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    </view>
+                    <arscnView clipsSubviews="YES" multipleTouchEnabled="YES" userInteractionEnabled="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="CCi-pR-skP">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                    </arscnView>
+                </subviews>
+                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                <constraints>
+                    <constraint firstItem="0a9-7l-LoN" firstAttribute="top" secondItem="3aL-hS-ozk" secondAttribute="top" id="1ep-2j-qaE"/>
+                    <constraint firstAttribute="trailing" secondItem="0a9-7l-LoN" secondAttribute="trailing" id="74j-C6-qqP"/>
+                    <constraint firstItem="0a9-7l-LoN" firstAttribute="leading" secondItem="3aL-hS-ozk" secondAttribute="leading" id="7Wq-UW-c6A"/>
+                    <constraint firstItem="CCi-pR-skP" firstAttribute="trailing" secondItem="YYN-Fn-Fv1" secondAttribute="trailing" id="H9t-Ln-ykP"/>
+                    <constraint firstItem="CCi-pR-skP" firstAttribute="leading" secondItem="YYN-Fn-Fv1" secondAttribute="leading" id="JwH-EX-nr9"/>
+                    <constraint firstItem="CCi-pR-skP" firstAttribute="bottom" secondItem="YYN-Fn-Fv1" secondAttribute="bottom" id="PSL-Ce-U5p"/>
+                    <constraint firstAttribute="bottom" secondItem="0a9-7l-LoN" secondAttribute="bottom" id="hds-bV-bhB"/>
+                    <constraint firstItem="CCi-pR-skP" firstAttribute="top" secondItem="3aL-hS-ozk" secondAttribute="top" id="iu9-FU-r5Q"/>
+                </constraints>
+                <viewLayoutGuide key="safeArea" id="YYN-Fn-Fv1"/>
+            </view>
+            <connections>
+                <outlet property="contentView" destination="0a9-7l-LoN" id="hr9-OW-5jq"/>
+                <outlet property="sceneView" destination="CCi-pR-skP" id="jzq-0U-yXW"/>
+            </connections>
+            <point key="canvasLocation" x="42" y="9"/>
+        </viewController>
+    </objects>
+</document>

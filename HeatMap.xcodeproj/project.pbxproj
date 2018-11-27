@@ -8,19 +8,20 @@
 
 /* Begin PBXBuildFile section */
 		5A92A71D20CEECB9002C1111 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A71C20CEECB9002C1111 /* AppDelegate.swift */; };
-		5A92A72120CEECB9002C1111 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A72020CEECB9002C1111 /* ViewController.swift */; };
+		5A92A72120CEECB9002C1111 /* EyeTrackingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A72020CEECB9002C1111 /* EyeTrackingViewController.swift */; };
 		5A92A72420CEECB9002C1111 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5A92A72220CEECB9002C1111 /* Main.storyboard */; };
 		5A92A72620CEECBA002C1111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A92A72520CEECBA002C1111 /* Assets.xcassets */; };
 		5A92A72920CEECBB002C1111 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5A92A72720CEECBB002C1111 /* LaunchScreen.storyboard */; };
 		5A92A73320CEF604002C1111 /* EyeLasers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A73220CEF604002C1111 /* EyeLasers.swift */; };
 		5A92A73520D02EE2002C1111 /* RaycastData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A92A73420D02EE2002C1111 /* RaycastData.swift */; };
 		5ACC4C6620D85D5000B91E25 /* HeatMap.metal in Sources */ = {isa = PBXBuildFile; fileRef = 5ACC4C6520D85D5000B91E25 /* HeatMap.metal */; };
+		7841CE6D21AD980E0032A0F8 /* EyeTrackingViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		5A92A71920CEECB9002C1111 /* HeatMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HeatMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A92A71C20CEECB9002C1111 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		5A92A72020CEECB9002C1111 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		5A92A72020CEECB9002C1111 /* EyeTrackingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeTrackingViewController.swift; sourceTree = "<group>"; };
 		5A92A72320CEECB9002C1111 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		5A92A72520CEECBA002C1111 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5A92A72820CEECBB002C1111 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -28,6 +29,7 @@
 		5A92A73220CEF604002C1111 /* EyeLasers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeLasers.swift; sourceTree = "<group>"; };
 		5A92A73420D02EE2002C1111 /* RaycastData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastData.swift; sourceTree = "<group>"; };
 		5ACC4C6520D85D5000B91E25 /* HeatMap.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = HeatMap.metal; sourceTree = "<group>"; };
+		7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = EyeTrackingViewController.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,12 +65,13 @@
 				5A92A73220CEF604002C1111 /* EyeLasers.swift */,
 				5A92A73420D02EE2002C1111 /* RaycastData.swift */,
 				5A92A71C20CEECB9002C1111 /* AppDelegate.swift */,
-				5A92A72020CEECB9002C1111 /* ViewController.swift */,
+				5A92A72020CEECB9002C1111 /* EyeTrackingViewController.swift */,
 				5A92A72520CEECBA002C1111 /* Assets.xcassets */,
 				5A92A72220CEECB9002C1111 /* Main.storyboard */,
 				5A92A72720CEECBB002C1111 /* LaunchScreen.storyboard */,
 				5A92A72A20CEECBB002C1111 /* Info.plist */,
 				5ACC4C6520D85D5000B91E25 /* HeatMap.metal */,
+				7841CE6C21AD980E0032A0F8 /* EyeTrackingViewController.xib */,
 			);
 			path = HeatMap;
 			sourceTree = "<group>";
@@ -134,6 +137,7 @@
 				5A92A72920CEECBB002C1111 /* LaunchScreen.storyboard in Resources */,
 				5A92A72620CEECBA002C1111 /* Assets.xcassets in Resources */,
 				5A92A72420CEECB9002C1111 /* Main.storyboard in Resources */,
+				7841CE6D21AD980E0032A0F8 /* EyeTrackingViewController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -144,7 +148,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5A92A72120CEECB9002C1111 /* ViewController.swift in Sources */,
+				5A92A72120CEECB9002C1111 /* EyeTrackingViewController.swift in Sources */,
 				5ACC4C6620D85D5000B91E25 /* HeatMap.metal in Sources */,
 				5A92A73520D02EE2002C1111 /* RaycastData.swift in Sources */,
 				5A92A71D20CEECB9002C1111 /* AppDelegate.swift in Sources */,

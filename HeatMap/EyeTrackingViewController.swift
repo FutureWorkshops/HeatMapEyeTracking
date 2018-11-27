@@ -15,9 +15,34 @@ struct PositionFrame: Codable {
     let timestamp: TimeInterval
 }
 
-class ViewController: UIViewController, ARSCNViewDelegate {
+protocol EyeTracker {
+    static func instance(tracking window: UIWindow) -> EyeTracker
+    func restore(_ window: UIWindow)
+    var isShowingTarget: Bool { get set }
+    var isExportEnabled: Bool { get set }
+}
+
+extension EyeTrackingViewController: EyeTracker {
+    static func instance(tracking window: UIWindow) -> EyeTracker {
+        let overlay = EyeTrackingViewController(nibName: String(describing: EyeTrackingViewController.self), bundle: Bundle(for: EyeTrackingViewController.self))
+        overlay.innerController = window.rootViewController
+        window.rootViewController = overlay
+        return overlay
+    }
+    
+    func restore(_ window: UIWindow) {
+        guard let innerController = self.innerController else {
+            return
+        }
+        self.innerController = nil
+        window.rootViewController = innerController
+    }
+}
+
+class EyeTrackingViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
+    @IBOutlet var contentView: UIView!
     
     let widthScale: Float = 0.0623908297 / 375.0
     let heightScale: Float = 0.135096943231532 / 812.0
@@ -39,25 +64,31 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     var screenWidth: Float = 0.0
     var screenHeigth: Float = 0.0
     
+    fileprivate weak var innerController: UIViewController? = nil {
+        willSet {
+            if let controller = self.innerController {
+                controller.willMove(toParent: nil)
+                controller.removeFromParent()
+                controller.view?.removeFromSuperview()
+            }
+        }
+        didSet {
+            guard let viewController = self.innerController else {
+                return
+            }
+            viewController.willMove(toParent: self)
+            self.addChild(viewController)
+            if self.isViewLoaded, let view = viewController.view {
+                self.putContent(view)
+            }
+        }
+    }
+    
     var virtualScreenNode: SCNNode = {
-        
         let screenGeometry = SCNPlane(width: 1, height: 1)
         screenGeometry.firstMaterial?.isDoubleSided = true
         screenGeometry.firstMaterial?.diffuse.contents = UIColor.green
-        
         return SCNNode(geometry: screenGeometry)
-    }()
-    
-    var testSphereStart : SCNNode = {
-        let node = SCNNode(geometry: SCNSphere(radius: 0.01))
-        node.geometry?.firstMaterial?.diffuse.contents = UIColor.purple
-        return node
-    }()
-    
-    var testSphereEnd : SCNNode = {
-        let node = SCNNode(geometry: SCNSphere(radius: 0.01))
-        node.geometry?.firstMaterial?.diffuse.contents = UIColor.yellow
-        return node
     }()
     
     var heatMapNode:SCNNode = {
@@ -75,6 +106,23 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     var target : UIView = UIView()
     
+    var isShowingTarget: Bool = true {
+        didSet {
+            guard isViewLoaded else {
+                return
+            }
+            
+            if self.isShowingTarget && self.target.superview == nil {
+                self.view.addSubview(self.target)
+            }
+            
+            if !self.isShowingTarget {
+                self.target.removeFromSuperview()
+            }
+        }
+    }
+    var isExportEnabled: Bool = true
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -87,14 +135,15 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         self.target.backgroundColor = UIColor.red
         self.target.frame = CGRect.init(x: 0,y:0 ,width:25 ,height:25)
         self.target.layer.cornerRadius = 12.5
-        self.view.addSubview(target)
+        if self.isShowingTarget {
+            self.view.addSubview(target)
+        }
         
         // Set the view's delegate
         sceneView.delegate = self
-        //sceneView.session.delegate = self
         sceneView.automaticallyUpdatesLighting = true
         
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(ViewController.exportBuffer))
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(EyeTrackingViewController.exportBuffer))
         tapGesture.cancelsTouchesInView = false
         tapGesture.numberOfTapsRequired = 3
         tapGesture.numberOfTouchesRequired = 2
@@ -115,9 +164,20 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
         sceneView.scene.rootNode.addChildNode(heatMapNode)
         
-        //sceneView.scene.rootNode.addChildNode(testSphereStart)
-        //sceneView.scene.rootNode.addChildNode(testSphereEnd)
         self.sceneView.scene.rootNode.addChildNode(virtualPhoneNode)
+        self.sceneView.alpha = 0.0
+        
+        if let content = self.innerController?.view, content.superview == nil {
+            self.putContent(content)
+        }
+    }
+    
+    func putContent(_ content: UIView) {
+        self.contentView.addSubview(content)
+        NSLayoutConstraint.activate([self.contentView.topAnchor.constraint(equalTo: content.topAnchor),
+                                     self.contentView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                                     self.contentView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                                     self.contentView.trailingAnchor.constraint(equalTo: content.trailingAnchor)])
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -175,9 +235,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                                        SCNHitTestOption.searchMode.rawValue: 1,
                                        SCNHitTestOption.ignoreChildNodes.rawValue : false,
                                        SCNHitTestOption.ignoreHiddenNodes.rawValue : false]
-        
-        testSphereStart.worldPosition = self.eyeRaycastData!.leftEye.worldPosition
-        testSphereEnd.worldPosition = self.eyeRaycastData!.leftEyeEnd.worldPosition
         
         let hitTestLeftEye = virtualPhoneNode.hitTestWithSegment(
             from: virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEye.worldPosition, from:nil),
@@ -250,6 +307,10 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     
     @IBAction func exportBuffer() {
+        guard self.isExportEnabled else {
+            return
+        }
+        
         let cleanBuffer = self.buffer.filter({ $0.position.x > 0.0 && $0.position.y > 0.0 })
         
         guard cleanBuffer.count > 0 else {
