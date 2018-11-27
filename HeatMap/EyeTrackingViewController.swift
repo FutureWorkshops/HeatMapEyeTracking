@@ -83,7 +83,6 @@ extension EyeTrackingViewController: ARSCNViewDelegate {
 class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
 
     @IBOutlet var sceneView: ARSCNView!
-    @IBOutlet var contentView: UIView!
     
     let widthScale: Float = 0.0623908297 / 375.0
     let heightScale: Float = 0.135096943231532 / 812.0
@@ -131,6 +130,8 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
         screenGeometry.firstMaterial?.diffuse.contents = UIColor.green
         return SCNNode(geometry: screenGeometry)
     }()
+    
+    let operationQueue: DispatchQueue = DispatchQueue(label: "EyeTrackingViewController.Tracker", qos: .userInteractive)
     
 //    lazy var heatMapNode:SCNNode = {
 //        let node = SCNNode(geometry:SCNPlane(width: 2, height: 2))  // -1 to 1
@@ -214,11 +215,12 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     }
     
     func putContent(_ content: UIView) {
-        self.contentView.addSubview(content)
-        NSLayoutConstraint.activate([self.contentView.topAnchor.constraint(equalTo: content.topAnchor),
-                                     self.contentView.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-                                     self.contentView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-                                     self.contentView.trailingAnchor.constraint(equalTo: content.trailingAnchor)])
+        self.view.addSubview(content)
+        self.view.sendSubviewToBack(content)
+        NSLayoutConstraint.activate([self.view.topAnchor.constraint(equalTo: content.topAnchor),
+                                     self.view.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+                                     self.view.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                                     self.view.trailingAnchor.constraint(equalTo: content.trailingAnchor)])
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -257,45 +259,52 @@ class EyeTrackingViewController: UIViewController, EyeTracker, EmbedContent {
     }
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
-        self.virtualPhoneNode.transform = (self.sceneView.pointOfView?.transform)!
-        
-        let options : [String: Any] = [SCNHitTestOption.backFaceCulling.rawValue: false,
-                                       SCNHitTestOption.searchMode.rawValue: 1,
-                                       SCNHitTestOption.ignoreChildNodes.rawValue : false,
-                                       SCNHitTestOption.ignoreHiddenNodes.rawValue : false]
-        
-        let hitTestLeftEye = self.virtualPhoneNode.hitTestWithSegment(
-            from: self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEye.worldPosition, from:nil),
-            to:  self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.leftEyeEnd.worldPosition, from:nil),
-            //from: self.eyeRaycastData!.leftEye.worldPosition,
-            //to:  self.eyeRaycastData!.leftEyeEnd.worldPosition,
-            options: options)
-        
-        let hitTestRightEye = self.virtualPhoneNode.hitTestWithSegment(
-            from: self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEye.worldPosition, from:nil),
-            to:  self.virtualPhoneNode.convertPosition(self.eyeRaycastData!.rightEyeEnd.worldPosition, from:nil),
-            //from: self.eyeRaycastData!.rightEye.worldPosition,
-            //to:  self.eyeRaycastData!.rightEyeEnd.worldPosition,
-            options: options)
-        
-        if let leftEye = hitTestLeftEye.first, let rightEye = hitTestRightEye.first {
+        self.operationQueue.async { [weak self] in
+            
+            guard let strongSelf = self else {
+                return
+            }
+            
+            strongSelf.virtualPhoneNode.transform = (strongSelf.sceneView.pointOfView?.transform)!
+            
+            let options : [String: Any] = [SCNHitTestOption.backFaceCulling.rawValue: false,
+                                           SCNHitTestOption.searchMode.rawValue: 1,
+                                           SCNHitTestOption.ignoreChildNodes.rawValue : false,
+                                           SCNHitTestOption.ignoreHiddenNodes.rawValue : false]
+            
+            let hitTestLeftEye = strongSelf.virtualPhoneNode.hitTestWithSegment(
+                from: strongSelf.virtualPhoneNode.convertPosition(strongSelf.eyeRaycastData!.leftEye.worldPosition, from:nil),
+                to:  strongSelf.virtualPhoneNode.convertPosition(strongSelf.eyeRaycastData!.leftEyeEnd.worldPosition, from:nil),
+                //from: self.eyeRaycastData!.leftEye.worldPosition,
+                //to:  self.eyeRaycastData!.leftEyeEnd.worldPosition,
+                options: options)
+            
+            let hitTestRightEye = strongSelf.virtualPhoneNode.hitTestWithSegment(
+                from: strongSelf.virtualPhoneNode.convertPosition(strongSelf.eyeRaycastData!.rightEye.worldPosition, from:nil),
+                to:  strongSelf.virtualPhoneNode.convertPosition(strongSelf.eyeRaycastData!.rightEyeEnd.worldPosition, from:nil),
+                //from: self.eyeRaycastData!.rightEye.worldPosition,
+                //to:  self.eyeRaycastData!.rightEyeEnd.worldPosition,
+                options: options)
+            
+            if let leftEye = hitTestLeftEye.first, let rightEye = hitTestRightEye.first {
 
-            var coords = self.screenPositionFromHittest(leftEye, secondResult:rightEye)
-            //print("x:\(coords.x) y: \(coords.y)")
-            
-            let point = CGPoint(x: CGFloat(coords.x), y: CGFloat(coords.y))
-            
-            //SAVE OPERATION
-            self.buffer.append(PositionFrame(position: point, timestamp: Date().timeIntervalSince1970))
-            
-//            incrementHeatMapAtPosition(x:Int(coords.x * 3), y:Int(coords.y * 3))  // convert from points to pixels here
-            
-//            let nsdata = NSData.init(bytes: &m_data, length: phoneWidth * phoneHeight)
-//            heatMapNode.geometry?.firstMaterial?.setValue(nsdata, forKey: "heatmapTexture")
-            
-            DispatchQueue.main.async(execute: { [weak self] in
-                self?.target.center = point
-            })
+                var coords = strongSelf.screenPositionFromHittest(leftEye, secondResult:rightEye)
+                //print("x:\(coords.x) y: \(coords.y)")
+                
+                let point = CGPoint(x: CGFloat(coords.x), y: CGFloat(coords.y))
+                
+                //SAVE OPERATION
+                strongSelf.buffer.append(PositionFrame(position: point, timestamp: Date().timeIntervalSince1970))
+                
+    //            incrementHeatMapAtPosition(x:Int(coords.x * 3), y:Int(coords.y * 3))  // convert from points to pixels here
+                
+    //            let nsdata = NSData.init(bytes: &m_data, length: phoneWidth * phoneHeight)
+    //            heatMapNode.geometry?.firstMaterial?.setValue(nsdata, forKey: "heatmapTexture")
+                
+                DispatchQueue.main.async(execute: { [weak self] in
+                    self?.target.center = point
+                })
+            }
         }
     }
     
